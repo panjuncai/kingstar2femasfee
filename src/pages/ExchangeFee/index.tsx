@@ -1,46 +1,25 @@
 import services from '@/services/demo';
 import {
   ActionType,
-  FooterToolbar,
   PageContainer,
   ProDescriptions,
   ProDescriptionsItemProps,
   ProTable,
 } from '@ant-design/pro-components';
-import { Button, Divider, Drawer, message } from 'antd';
+import { Button, Drawer } from 'antd';
 import React, { useRef, useState } from 'react';
 import ImportForm from './components/ImportForm';
-
-const { addUser, queryUserList, deleteUser, modifyUser } =
-  services.UserController;
-
-/**
- * 添加节点
- * @param fields
- */
-const handleAdd = async (fields: API.UserInfo) => {
-  const hide = message.loading('正在添加');
-  try {
-    await addUser({ ...fields });
-    hide();
-    message.success('添加成功');
-    return true;
-  } catch (error) {
-    hide();
-    message.error('添加失败请重试！');
-    return false;
-  }
-};
-
+const { queryUserList } = services.UserController;
 
 const ExchangeFeePage: React.FC<unknown> = () => {
-  const [createModalVisible, handleModalVisible] = useState<boolean>(false);
-  const [updateModalVisible, handleUpdateModalVisible] =
+  const [importModalVisible, handleImportModalVisible] =
     useState<boolean>(false);
-  const [stepFormValues, setStepFormValues] = useState({});
   const actionRef = useRef<ActionType>();
   const [row, setRow] = useState<API.UserInfo>();
-//   const [selectedRowsState, setSelectedRows] = useState<API.UserInfo[]>([]);
+
+  if (importModalVisible) {
+    return <ImportForm />;
+  }
   const columns: ProDescriptionsItemProps<API.UserInfo>[] = [
     {
       title: '名称',
@@ -81,24 +60,22 @@ const ExchangeFeePage: React.FC<unknown> = () => {
         headerTitle=""
         actionRef={actionRef}
         rowKey="id"
-        search={{
-          labelWidth: 120,
-        }}
+        search={false}
         toolBarRender={() => [
           <Button
             key="1"
             type="primary"
-            onClick={() => handleModalVisible(true)}
+            onClick={() => handleImportModalVisible(true)}
           >
             导入
           </Button>,
         ]}
         options={{
-            setting: false,
-            density: false,
-            fullScreen: false,
-            reload: false,
-          }}
+          setting: false,
+          density: false,
+          fullScreen: false,
+          reload: false,
+        }}
         request={async (params, sorter, filter) => {
           const { data, success } = await queryUserList({
             ...params,
