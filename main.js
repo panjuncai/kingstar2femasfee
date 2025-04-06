@@ -22,8 +22,13 @@ async function initDatabase() {
     console.log('SQL.js 已加载');
 
     // 设置数据库路径
-    const userDataPath = '/Users/panjc/Documents/Project/kingstar2femasfee';
-    console.log('应用数据目录:', userDataPath);
+    if (isDev) {
+      const userDataPath = '/Users/panjc/Documents/Project/kingstar2femasfee';
+      console.log('应用数据目录:', userDataPath);
+    } else {
+      const userDataPath = app.getPath('userData');
+      console.log('应用数据目录:', userDataPath);
+    }
 
     const dbDir = path.join(userDataPath, 'db');
     console.log('数据库目录:', dbDir);
