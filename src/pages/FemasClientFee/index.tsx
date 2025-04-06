@@ -4,7 +4,7 @@ import {
   ProColumns,
   ProTable,
 } from '@ant-design/pro-components';
-import { Button, Modal, Pagination, message } from 'antd';
+import { Button, Modal, message } from 'antd';
 import React, { useEffect, useRef, useState } from 'react';
 import ImportForm from './components/ImportForm';
 
@@ -22,11 +22,6 @@ const ExchangeFeePage: React.FC<unknown> = () => {
   const actionRef = useRef<ActionType>();
   const [dataSource, setDataSource] = useState<ExchangeFeeItem[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
-  const [originalData, setOriginalData] = useState<ExchangeFeeItem[]>([]);
-  // 分页相关状态
-  const [current, setCurrent] = useState<number>(1);
-  const [pageSize, setPageSize] = useState<number>(20);
-  const [total, setTotal] = useState<number>(0);
 
   // 定义表格列
   const columns: ProColumns<ExchangeFeeItem>[] = [
@@ -69,7 +64,7 @@ const ExchangeFeePage: React.FC<unknown> = () => {
       },
     },
     {
-      title: '开仓手续费率(按手数)',
+      title: '开仓手续费率（ 按手数）',
       dataIndex: 'open_amt',
       valueType: 'digit',
       fieldProps: {
@@ -77,7 +72,7 @@ const ExchangeFeePage: React.FC<unknown> = () => {
       },
     },
     {
-      title: '开仓手续费率(按金额)',
+      title: '开仓手续费率（按金额）',
       dataIndex: 'open_rate',
       valueType: 'digit',
       fieldProps: {
@@ -93,8 +88,6 @@ const ExchangeFeePage: React.FC<unknown> = () => {
       const result = await window.electronAPI.queryExchangeFees();
       if (result.success && result.data) {
         setDataSource(result.data);
-        setOriginalData(result.data);
-        setTotal(result.data.length);
       } else {
         message.error(result.message || '加载数据失败');
       }
@@ -104,21 +97,6 @@ const ExchangeFeePage: React.FC<unknown> = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  // 处理分页变化
-  const handlePageChange = (page: number, size?: number) => {
-    setCurrent(page);
-    if (size) {
-      setPageSize(size);
-    }
-  };
-
-  // 获取当前页数据
-  const getCurrentPageData = () => {
-    const startIndex = (current - 1) * pageSize;
-    const endIndex = startIndex + pageSize;
-    return dataSource.slice(startIndex, endIndex);
   };
 
   // 组件挂载时加载数据
@@ -174,10 +152,10 @@ const ExchangeFeePage: React.FC<unknown> = () => {
           filterType: 'query',
         }}
         loading={loading}
-        dataSource={getCurrentPageData()}
+        dataSource={dataSource}
         onSubmit={(params) => {
-          // 筛选数据 - 始终从原始数据中筛选
-          const filteredData = originalData.filter((item) => {
+          // 筛选数据
+          const filteredData = dataSource.filter((item) => {
             // 交易所和产品类型 - 精确匹配
             if (params.exch_code && item.exch_code !== params.exch_code)
               return false;
@@ -199,48 +177,32 @@ const ExchangeFeePage: React.FC<unknown> = () => {
             )
               return false;
 
-            // 开仓手续费率 - 近似匹配（考虑浮点数精度问题）
-            if (params.open_amt !== undefined) {
-              const diff = Math.abs(item.open_amt - params.open_amt);
-              if (diff > 0.000001) return false; // 容许很小的误差
-            }
-
-            if (params.open_rate !== undefined) {
-              // 对于非常小的小数，使用更高精度的近似比较
-              const diff = Math.abs(item.open_rate - params.open_rate);
-              if (diff > 0.000000001) return false; // 容许极小的误差
-            }
+            // 开仓手续费率 - 精确匹配
+            if (
+              params.open_amt !== undefined &&
+              item.open_amt !== params.open_amt
+            )
+              return false;
+            if (
+              params.open_rate !== undefined &&
+              item.open_rate !== params.open_rate
+            )
+              return false;
 
             return true;
           });
 
           setDataSource(filteredData);
-          setTotal(filteredData.length);
-          setCurrent(1); // 重置到第一页
+
+          // 如果没有筛选条件，重新加载所有数据
+          if (Object.keys(params).length === 0) {
+            loadData();
+          }
         }}
         onReset={() => {
-          // 重置时恢复原始数据
-          setDataSource(originalData);
-          setTotal(originalData.length);
-          setCurrent(1); // 重置到第一页
+          loadData();
         }}
         toolBarRender={() => [
-          <div
-            key="pagination"
-            style={{ display: 'flex', alignItems: 'center' }}
-          >
-            <Pagination
-              current={current}
-              pageSize={pageSize}
-              total={total}
-              size="small"
-              onChange={handlePageChange}
-              showSizeChanger
-              showQuickJumper
-              showTotal={(t) => `共 ${t} 条`}
-              style={{ marginRight: 16 }}
-            />
-          </div>,
           <Button
             key="1"
             type="primary"
@@ -259,7 +221,6 @@ const ExchangeFeePage: React.FC<unknown> = () => {
           reload: () => loadData(),
         }}
         columns={columns}
-        pagination={false}
       />
 
       <ImportForm

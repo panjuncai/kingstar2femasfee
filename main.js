@@ -279,7 +279,7 @@ ipcMain.handle('query-exchange-fees', () => {
                 // 如果转换后是NaN，设为0
                 if (isNaN(obj[col])) obj[col] = 0;
               } else {
-                obj[col] = row[i];
+                obj[col] = row[i] || ''; // 确保字符串字段为空字符串而不是null
               }
             });
             return obj;

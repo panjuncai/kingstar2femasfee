@@ -22,9 +22,14 @@ export default defineConfig({
       component: './ExchangeFee',
     },
     {
-      name: ' CRUD 示例',
-      path: '/table',
-      component: './Table',
+      name: '飞马客户手续费率',
+      path: '/femasClientFee',
+      component: './FemasClientFee',
+    },
+    {
+      name: '金仕达客户手续费率',
+      path: '/kingStarClientFee',
+      component: './KingStarClientFee',
     },
   ],
   npmClient: 'pnpm',

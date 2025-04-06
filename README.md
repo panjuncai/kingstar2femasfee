@@ -32,3 +32,7 @@
 - 版本: 1.0.0
 - 更新日期: 2025-04-06
 - 开发者: panjc
+
+### debug
+
+- window.electronAPI.execSql('SELECT \* FROM t_exchange_trade_fee').then(result => console.table(result.data));
