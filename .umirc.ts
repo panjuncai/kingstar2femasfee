@@ -7,17 +7,17 @@ export default defineConfig({
   initialState: {},
   request: {},
   layout: {
-    title: '@umijs/max',
+    title: '金仕达到飞马费率转换',
   },
   routes: [
     {
       path: '/',
-      redirect: '/home',
+      redirect: '/exchangeFee',
     },
     {
-      name: '首页',
-      path: '/home',
-      component: './Home',
+      name: '交易所手续费率',
+      path: '/exchangeFee',
+      component: './ExchangeFee',
     },
     {
       name: '权限演示',
