@@ -2,11 +2,9 @@ import {
   ActionType,
   PageContainer,
   ProColumns,
-  ProDescriptions,
-  ProDescriptionsItemProps,
   ProTable,
 } from '@ant-design/pro-components';
-import { Button, Drawer, Modal, message } from 'antd';
+import { Button, Modal, message } from 'antd';
 import React, { useEffect, useRef, useState } from 'react';
 import ImportForm from './components/ImportForm';
 
@@ -22,7 +20,6 @@ interface ExchangeFeeItem {
 const ExchangeFeePage: React.FC<unknown> = () => {
   const [importModalVisible, setImportModalVisible] = useState<boolean>(false);
   const actionRef = useRef<ActionType>();
-  const [row, setRow] = useState<ExchangeFeeItem>();
   const [dataSource, setDataSource] = useState<ExchangeFeeItem[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
 
@@ -31,15 +28,7 @@ const ExchangeFeePage: React.FC<unknown> = () => {
     {
       title: '交易所',
       dataIndex: 'exch_code',
-      tip: '交易所代码',
-      formItemProps: {
-        rules: [
-          {
-            required: true,
-            message: '交易所为必填项',
-          },
-        ],
-      },
+      valueType: 'text',
     },
     {
       title: '产品类型',
@@ -69,38 +58,8 @@ const ExchangeFeePage: React.FC<unknown> = () => {
       dataIndex: 'open_rate',
       valueType: 'digit',
       fieldProps: {
-        precision: 2,
+        precision: 8,
       },
-    },
-  ];
-
-  // 详情展示列
-  const descriptionColumns: ProDescriptionsItemProps<ExchangeFeeItem>[] = [
-    {
-      title: '交易所',
-      dataIndex: 'exch_code',
-    },
-    {
-      title: '产品类型',
-      dataIndex: 'product_type',
-    },
-    {
-      title: '产品代码',
-      dataIndex: 'product_id',
-    },
-    {
-      title: '合约代码',
-      dataIndex: 'instrument_id',
-    },
-    {
-      title: '开仓手续费（按手数）',
-      dataIndex: 'open_amt',
-      valueType: 'money',
-    },
-    {
-      title: '开仓手续费（按金额）',
-      dataIndex: 'open_rate',
-      valueType: 'percent',
     },
   ];
 
@@ -168,9 +127,11 @@ const ExchangeFeePage: React.FC<unknown> = () => {
         headerTitle=""
         actionRef={actionRef}
         rowKey={(record) =>
-          `${record.exch_code}_${record.product_type}_${record.instrument_id}`
+          `${record.exch_code}_${record.product_type}_${record.product_id}_${record.instrument_id}`
         }
-        search={false}
+        search={{
+          labelWidth: 120,
+        }}
         loading={loading}
         dataSource={dataSource}
         toolBarRender={() => [
@@ -199,32 +160,6 @@ const ExchangeFeePage: React.FC<unknown> = () => {
         onCancel={() => setImportModalVisible(false)}
         onSuccess={handleImportSuccess}
       />
-
-      <Drawer
-        width={600}
-        open={!!row}
-        onClose={() => {
-          setRow(undefined);
-        }}
-        closable={false}
-      >
-        {row?.exch_code && (
-          <ProDescriptions<ExchangeFeeItem>
-            column={2}
-            title={`${row.exch_code} - ${row.instrument_id}`}
-            request={async () => ({
-              data: row || {},
-            })}
-            params={{
-              exch_code: row?.exch_code,
-              product_type: row?.product_type,
-              product_id: row?.product_id,
-              instrument_id: row?.instrument_id,
-            }}
-            columns={descriptionColumns}
-          />
-        )}
-      </Drawer>
     </PageContainer>
   );
 };

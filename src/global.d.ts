@@ -14,5 +14,18 @@ interface Window {
       message?: string;
     }>;
     clearExchangeFees: () => Promise<{ success: boolean; message?: string }>;
+    readReadme: () => Promise<{
+      success: boolean;
+      data: string;
+      message?: string;
+    }>;
+    execSql: (sql: string) => Promise<{
+      success: boolean;
+      data?: Array<Record<string, any>>;
+      columnNames?: string[];
+      rowCount?: number;
+      message?: string;
+      sql?: string;
+    }>;
   };
 }

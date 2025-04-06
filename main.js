@@ -88,7 +88,7 @@ function createTables() {
       product_id TEXT,
       instrument_id TEXT NOT NULL,
       open_amt DECIMAL(10,2) DEFAULT 0.00,
-      open_rate DECIMAL(10,2) DEFAULT 0.00,
+      open_rate DECIMAL(10,8) DEFAULT 0.0000000,
       PRIMARY KEY (exch_code, product_type, product_id, instrument_id)
     )`);
     console.log('表已创建或已存在');
@@ -164,6 +164,7 @@ ipcMain.handle('import-excel', async (event) => {
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
     const data = XLSX.utils.sheet_to_json(worksheet);
+    console.log('data', data);
 
     if (data.length === 0) {
       return { success: false, message: 'Excel文件为空' };
@@ -187,11 +188,43 @@ ipcMain.handle('import-excel', async (event) => {
         const product_type = row['产品类型'] || '';
         const product_id = row['产品代码'] || '';
         const instrument_id = row['合约代码'] || '';
-        const open_amt = parseFloat(row['开仓手续费（按手数）'] || 0).toFixed(
-          2,
-        );
-        const open_rate = parseFloat(row['开仓手续费（按金额）'] || 0).toFixed(
-          2,
+
+        // 转换为数值类型
+        let open_amt = 0;
+        let open_rate = 0;
+
+        console.log('开仓手续费率（按手数）', row['开仓手续费率（按手数）']);
+        console.log('开仓手续费率（按金额）', row['开仓手续费率（按金额）']);
+        // 确保正确解析数值
+        if (
+          row['开仓手续费率（按手数）'] !== undefined &&
+          row['开仓手续费率（按手数）'] !== null
+        ) {
+          // 先确保是字符串，然后替换掉可能的逗号等分隔符，再转为浮点数
+          open_amt = parseFloat(
+            String(row['开仓手续费率（按手数）']).replace(/,/g, ''),
+          );
+        }
+
+        if (
+          row['开仓手续费率（按金额）'] !== undefined &&
+          row['开仓手续费率（按金额）'] !== null
+        ) {
+          // 同样处理金额百分比
+          open_rate =
+            parseFloat(
+              String(row['开仓手续费率（按金额）'])
+                .replace(/,/g, '')
+                .replace(/%/g, ''),
+            ) / 100;
+        }
+
+        // 确保是有效数字
+        if (isNaN(open_amt)) open_amt = 0;
+        if (isNaN(open_rate)) open_rate = 0;
+
+        console.log(
+          `导入数据: ${exch_code}, ${product_type}, ${product_id}, ${instrument_id}, 手续费(按手数): ${open_amt}, 手续费(按金额): ${open_rate}`,
         );
 
         stmt.run([
@@ -199,8 +232,8 @@ ipcMain.handle('import-excel', async (event) => {
           product_type,
           product_id,
           instrument_id,
-          open_amt,
-          open_rate,
+          open_amt, // 直接使用数值
+          open_rate, // 直接使用数值
         ]);
         stmt.free();
       }
@@ -237,7 +270,17 @@ ipcMain.handle('query-exchange-fees', () => {
         ? result[0].values.map((row) => {
             const obj = {};
             result[0].columns.forEach((col, i) => {
-              obj[col] = row[i];
+              // 确保数值字段作为数值类型传递
+              if (col === 'open_amt' || col === 'open_rate') {
+                // 确保是数值类型
+                obj[col] =
+                  typeof row[i] === 'string' ? parseFloat(row[i]) : row[i];
+
+                // 如果转换后是NaN，设为0
+                if (isNaN(obj[col])) obj[col] = 0;
+              } else {
+                obj[col] = row[i];
+              }
             });
             return obj;
           })
@@ -295,5 +338,43 @@ app.on('will-quit', () => {
     } catch (err) {
       console.error('关闭时保存数据库失败:', err.message);
     }
+  }
+});
+
+// 执行SQL查询（仅用于调试）
+ipcMain.handle('exec-sql', (event, sql) => {
+  try {
+    console.log('执行SQL查询:', sql);
+
+    // 执行SQL查询
+    const result = db.exec(sql);
+
+    // 将结果转换为易于阅读的格式
+    if (result.length === 0) {
+      return { success: true, message: '查询执行成功，但没有返回数据' };
+    }
+
+    // 将结果转换为对象数组
+    const rows = result[0].values.map((row) => {
+      const obj = {};
+      result[0].columns.forEach((col, i) => {
+        obj[col] = row[i];
+      });
+      return obj;
+    });
+
+    return {
+      success: true,
+      data: rows,
+      columnNames: result[0].columns,
+      rowCount: rows.length,
+    };
+  } catch (error) {
+    console.error('执行SQL查询失败:', error);
+    return {
+      success: false,
+      message: `查询失败: ${error.message}`,
+      sql: sql,
+    };
   }
 });

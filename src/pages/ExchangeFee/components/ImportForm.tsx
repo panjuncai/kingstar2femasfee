@@ -37,7 +37,7 @@ const ImportForm: React.FC<ImportFormProps> = ({
 
   return (
     <Modal
-      title="导入手续费数据"
+      title="导入飞马交易所手续费率"
       open={visible}
       onCancel={onCancel}
       footer={null}
@@ -45,11 +45,7 @@ const ImportForm: React.FC<ImportFormProps> = ({
     >
       <Form layout="vertical">
         <div style={{ textAlign: 'center', marginBottom: 16 }}>
-          <p>点击下方按钮选择Excel文件进行导入</p>
-          <p>支持的文件格式：.xlsx, .xls</p>
-          <p>
-            Excel列名应包含：交易所、产品类型、产品代码、合约代码、开仓手续费（按手数）、开仓手续费（按金额）
-          </p>
+          <h3>先清空，后导入</h3>
         </div>
         <div style={{ textAlign: 'center' }}>
           <Button
