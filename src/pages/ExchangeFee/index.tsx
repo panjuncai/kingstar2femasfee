@@ -1,54 +1,162 @@
-import services from '@/services/demo';
 import {
   ActionType,
   PageContainer,
+  ProColumns,
   ProDescriptions,
   ProDescriptionsItemProps,
   ProTable,
 } from '@ant-design/pro-components';
-import { Button, Drawer } from 'antd';
-import React, { useRef, useState } from 'react';
+import { Button, Drawer, Modal, message } from 'antd';
+import React, { useEffect, useRef, useState } from 'react';
 import ImportForm from './components/ImportForm';
-const { queryUserList } = services.UserController;
+
+interface ExchangeFeeItem {
+  exch_code: string;
+  product_type: string;
+  product_id: string;
+  instrument_id: string;
+  open_amt: number;
+  open_rate: number;
+}
 
 const ExchangeFeePage: React.FC<unknown> = () => {
-  const [importModalVisible, handleImportModalVisible] =
-    useState<boolean>(false);
+  const [importModalVisible, setImportModalVisible] = useState<boolean>(false);
   const actionRef = useRef<ActionType>();
-  const [row, setRow] = useState<API.UserInfo>();
+  const [row, setRow] = useState<ExchangeFeeItem>();
+  const [dataSource, setDataSource] = useState<ExchangeFeeItem[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
 
-  if (importModalVisible) {
-    return <ImportForm />;
-  }
-  const columns: ProDescriptionsItemProps<API.UserInfo>[] = [
+  // 定义表格列
+  const columns: ProColumns<ExchangeFeeItem>[] = [
     {
-      title: '名称',
-      dataIndex: 'name',
-      tip: '名称是唯一的 key',
+      title: '交易所',
+      dataIndex: 'exch_code',
+      tip: '交易所代码',
       formItemProps: {
         rules: [
           {
             required: true,
-            message: '名称为必填项',
+            message: '交易所为必填项',
           },
         ],
       },
     },
     {
-      title: '昵称',
-      dataIndex: 'nickName',
+      title: '产品类型',
+      dataIndex: 'product_type',
       valueType: 'text',
     },
     {
-      title: '性别',
-      dataIndex: 'gender',
-      hideInForm: true,
-      valueEnum: {
-        0: { text: '男', status: 'MALE' },
-        1: { text: '女', status: 'FEMALE' },
+      title: '产品代码',
+      dataIndex: 'product_id',
+      valueType: 'text',
+    },
+    {
+      title: '合约代码',
+      dataIndex: 'instrument_id',
+      valueType: 'text',
+    },
+    {
+      title: '开仓手续费（按手数）',
+      dataIndex: 'open_amt',
+      valueType: 'digit',
+      fieldProps: {
+        precision: 2,
+      },
+    },
+    {
+      title: '开仓手续费（按金额）',
+      dataIndex: 'open_rate',
+      valueType: 'digit',
+      fieldProps: {
+        precision: 2,
       },
     },
   ];
+
+  // 详情展示列
+  const descriptionColumns: ProDescriptionsItemProps<ExchangeFeeItem>[] = [
+    {
+      title: '交易所',
+      dataIndex: 'exch_code',
+    },
+    {
+      title: '产品类型',
+      dataIndex: 'product_type',
+    },
+    {
+      title: '产品代码',
+      dataIndex: 'product_id',
+    },
+    {
+      title: '合约代码',
+      dataIndex: 'instrument_id',
+    },
+    {
+      title: '开仓手续费（按手数）',
+      dataIndex: 'open_amt',
+      valueType: 'money',
+    },
+    {
+      title: '开仓手续费（按金额）',
+      dataIndex: 'open_rate',
+      valueType: 'percent',
+    },
+  ];
+
+  // 从数据库中加载数据
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const result = await window.electronAPI.queryExchangeFees();
+      if (result.success && result.data) {
+        setDataSource(result.data);
+      } else {
+        message.error(result.message || '加载数据失败');
+      }
+    } catch (error) {
+      console.error('加载数据失败:', error);
+      message.error('加载数据失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 组件挂载时加载数据
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  // 导入成功后刷新数据
+  const handleImportSuccess = () => {
+    setImportModalVisible(false);
+    loadData();
+  };
+
+  // 清空数据
+  const handleClearData = () => {
+    Modal.confirm({
+      title: '确认清空',
+      content: '确定要清空所有交易所手续费数据吗？此操作不可恢复。',
+      okText: '确定',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          const result = await window.electronAPI.clearExchangeFees();
+          if (result.success) {
+            message.success(result.message);
+            loadData(); // 刷新数据
+          } else {
+            message.error(result.message);
+          }
+        } catch (error) {
+          console.error('清空数据失败:', error);
+          message.error('清空数据失败');
+        }
+      },
+    });
+  };
 
   return (
     <PageContainer
@@ -56,40 +164,40 @@ const ExchangeFeePage: React.FC<unknown> = () => {
         title: '交易所手续费率',
       }}
     >
-      <ProTable<API.UserInfo>
+      <ProTable<ExchangeFeeItem>
         headerTitle=""
         actionRef={actionRef}
-        rowKey="id"
+        rowKey={(record) =>
+          `${record.exch_code}_${record.product_type}_${record.instrument_id}`
+        }
         search={false}
+        loading={loading}
+        dataSource={dataSource}
         toolBarRender={() => [
           <Button
             key="1"
             type="primary"
-            onClick={() => handleImportModalVisible(true)}
+            onClick={() => setImportModalVisible(true)}
           >
             导入
+          </Button>,
+          <Button key="2" danger onClick={handleClearData}>
+            清空
           </Button>,
         ]}
         options={{
           setting: false,
           density: false,
           fullScreen: false,
-          reload: false,
-        }}
-        request={async (params, sorter, filter) => {
-          const { data, success } = await queryUserList({
-            ...params,
-            // FIXME: remove @ts-ignore
-            // @ts-ignore
-            sorter,
-            filter,
-          });
-          return {
-            data: data?.list || [],
-            success,
-          };
+          reload: () => loadData(),
         }}
         columns={columns}
+      />
+
+      <ImportForm
+        visible={importModalVisible}
+        onCancel={() => setImportModalVisible(false)}
+        onSuccess={handleImportSuccess}
       />
 
       <Drawer
@@ -100,17 +208,20 @@ const ExchangeFeePage: React.FC<unknown> = () => {
         }}
         closable={false}
       >
-        {row?.name && (
-          <ProDescriptions<API.UserInfo>
+        {row?.exch_code && (
+          <ProDescriptions<ExchangeFeeItem>
             column={2}
-            title={row?.name}
+            title={`${row.exch_code} - ${row.instrument_id}`}
             request={async () => ({
               data: row || {},
             })}
             params={{
-              id: row?.name,
+              exch_code: row?.exch_code,
+              product_type: row?.product_type,
+              product_id: row?.product_id,
+              instrument_id: row?.instrument_id,
             }}
-            columns={columns}
+            columns={descriptionColumns}
           />
         )}
       </Drawer>

@@ -20,11 +20,6 @@ export default defineConfig({
       component: './ExchangeFee',
     },
     {
-      name: '权限演示',
-      path: '/access',
-      component: './Access',
-    },
-    {
       name: ' CRUD 示例',
       path: '/table',
       component: './Table',
