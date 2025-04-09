@@ -22,11 +22,12 @@ async function initDatabase() {
     console.log('SQL.js 已加载');
 
     // 设置数据库路径
+    let userDataPath;
     if (isDev) {
-      const userDataPath = '/Users/panjc/Documents/Project/kingstar2femasfee';
+      userDataPath = '/Users/panjc/Documents/Project/kingstar2femasfee';
       console.log('应用数据目录:', userDataPath);
     } else {
-      const userDataPath = app.getPath('userData');
+      userDataPath = app.getPath('userData');
       console.log('应用数据目录:', userDataPath);
     }
 
@@ -169,7 +170,6 @@ ipcMain.handle('import-excel', async (event) => {
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
     const data = XLSX.utils.sheet_to_json(worksheet);
-    console.log('data', data);
 
     if (data.length === 0) {
       return { success: false, message: 'Excel文件为空' };
@@ -198,8 +198,6 @@ ipcMain.handle('import-excel', async (event) => {
         let open_amt = 0;
         let open_rate = 0;
 
-        console.log('开仓手续费率（按手数）', row['开仓手续费率（按手数）']);
-        console.log('开仓手续费率（按金额）', row['开仓手续费率（按金额）']);
         // 确保正确解析数值
         if (
           row['开仓手续费率（按手数）'] !== undefined &&
@@ -228,9 +226,9 @@ ipcMain.handle('import-excel', async (event) => {
         if (isNaN(open_amt)) open_amt = 0;
         if (isNaN(open_rate)) open_rate = 0;
 
-        console.log(
-          `导入数据: ${exch_code}, ${product_type}, ${product_id}, ${instrument_id}, 手续费(按手数): ${open_amt}, 手续费(按金额): ${open_rate}`,
-        );
+        // console.log(
+        //   `导入数据: ${exch_code}, ${product_type}, ${product_id}, ${instrument_id}, 手续费(按手数): ${open_amt}, 手续费(按金额): ${open_rate}`,
+        // );
 
         stmt.run([
           exch_code,
