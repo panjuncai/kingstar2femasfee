@@ -6,7 +6,7 @@ declare global {
     electronAPI: {
       importExcel: () => Promise<Result<string>>;
       queryExchangeFees: () => Promise<Result<Array<ExchangeFeeItem>>>;
-      clearExchangeFees: () => Promise<Result<void>>;
+      clearExchangeTradeFee: () => Promise<Result<void>>;
       readReadme: () => Promise<Result<string>>;
       execSql: (sql: string) => Promise<{
         success: boolean;

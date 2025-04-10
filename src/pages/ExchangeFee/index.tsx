@@ -9,6 +9,7 @@ import {
 } from '@ant-design/pro-components';
 import { Button, Modal, Pagination, message } from 'antd';
 import React, { useEffect, useRef, useState } from 'react';
+
 const ExchangeFeePage: React.FC<unknown> = () => {
   const [importModalVisible, setImportModalVisible] = useState<boolean>(false);
   const actionRef = useRef<ActionType>();
@@ -259,7 +260,7 @@ const ExchangeFeePage: React.FC<unknown> = () => {
       cancelText: '取消',
       onOk: async () => {
         try {
-          const result = await window.electronAPI.clearExchangeFees();
+          const result = await window.electronAPI.clearExchangeTradeFee();
           if (result.success) {
             message.success(result.message);
             loadData(); // 刷新数据

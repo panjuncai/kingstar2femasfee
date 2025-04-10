@@ -1,4 +1,5 @@
 import ImportForm from '@/components/ImportForm';
+import { ExchangeFeeItem } from '@/types/exchangeFee';
 import {
   ActionType,
   PageContainer,
@@ -7,16 +8,6 @@ import {
 } from '@ant-design/pro-components';
 import { Button, Modal, message } from 'antd';
 import React, { useEffect, useRef, useState } from 'react';
-
-interface ExchangeFeeItem {
-  exch_code: string;
-  product_type: string;
-  product_id: string;
-  instrument_id: string;
-  open_amt: number;
-  open_rate: number;
-}
-
 const ExchangeFeePage: React.FC<unknown> = () => {
   const [importModalVisible, setImportModalVisible] = useState<boolean>(false);
   const actionRef = useRef<ActionType>();
@@ -120,7 +111,7 @@ const ExchangeFeePage: React.FC<unknown> = () => {
       cancelText: '取消',
       onOk: async () => {
         try {
-          const result = await window.electronAPI.clearExchangeFees();
+          const result = await window.electronAPI.clearExchangeTradeFee();
           if (result.success) {
             message.success(result.message);
             loadData(); // 刷新数据
@@ -179,13 +170,13 @@ const ExchangeFeePage: React.FC<unknown> = () => {
 
             // 开仓手续费率 - 精确匹配
             if (
-              params.open_amt !== undefined &&
-              item.open_amt !== params.open_amt
+              params.open_fee_amt !== undefined &&
+              item.open_fee_amt !== params.open_fee_amt
             )
               return false;
             if (
-              params.open_rate !== undefined &&
-              item.open_rate !== params.open_rate
+              params.open_fee_rate !== undefined &&
+              item.open_fee_rate !== params.open_fee_rate
             )
               return false;
 
