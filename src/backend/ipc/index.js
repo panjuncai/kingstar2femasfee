@@ -35,10 +35,10 @@ class IpcHandlers {
         return { success: false, message: 'Excel文件为空' };
       }
 
-      try {
-        // 使用事务处理
-        db.exec('BEGIN TRANSACTION');
+      // 使用事务处理
+      db.exec('BEGIN TRANSACTION');
 
+      try {
         // 清空现有数据
         db.exec('DELETE FROM t_exchange_trade_fee');
 
@@ -80,11 +80,11 @@ class IpcHandlers {
           const exec_clear_fee_rate = parseRate(row, '行权手续费率（按金额）');
           const exec_clear_fee_amt = parseAmount(row, '行权手续费额（按手数）');
 
-          console.log(
-            `导入数据: ${exch_code}, ${product_type}, ${product_id}, ${instrument_id},${option_series_id} ` +
-              `投保标识: ${hedge_flag}, 买卖标识: ${buy_sell}, ` +
-              `开仓费率: ${open_fee_rate}, 开仓费额: ${open_fee_amt}`,
-          );
+          // console.log(
+          //   `导入数据🌻: ${exch_code}, ${product_type}, ${product_id}, ${instrument_id},${option_series_id} ` +
+          //     `投保标识: ${hedge_flag}, 买卖标识: ${buy_sell}, ` +
+          //     `开仓费率: ${open_fee_rate}, 开仓费额: ${open_fee_amt}`,
+          // );
 
           stmt.run([
             exch_code,
@@ -111,10 +111,11 @@ class IpcHandlers {
 
         // 提交事务
         db.exec('COMMIT');
+        console.log('🌻提交事务');
 
         dbInstance.saveDatabase();
-
-        return { success: true, message: `成功导入${data.length}条数据` };
+        console.log('🌻保存数据库');
+        return { success: true, message: `🌻成功导入${data.length}条数据` };
       } catch (error) {
         // 回滚事务
         db.exec('ROLLBACK');

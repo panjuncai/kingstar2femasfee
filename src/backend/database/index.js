@@ -39,13 +39,15 @@ class Database {
   }
 
   saveDatabase() {
-    if (this.db) {
-      const data = this.db.export();
-      const buffer = Buffer.from(data);
-      fs.writeFileSync(this.dbPath, buffer);
-    } else {
-      throw new Error('数据库未初始化');
+    if (!this.db) {
+      throw new Error('🧨数据库未初始化');
     }
+    if (!this.dbPath) {
+      throw new Error('🧨数据库路径未定义');
+    }
+    const data = this.db.export();
+    const buffer = Buffer.from(data);
+    fs.writeFileSync(this.dbPath, buffer);
   }
 
   startAutoSave() {
