@@ -1,6 +1,6 @@
 import ImportForm from '@/components/ImportForm';
 import { ExchangeFeeItem } from '@/types/exchangeFee';
-import { compareAmount, compareRate } from '@/utils/tool';
+import { compareAmount, compareRate } from '@/utils';
 import {
   ActionType,
   PageContainer,
@@ -187,30 +187,8 @@ const ExchangeFeePage: React.FC<unknown> = () => {
     try {
       setLoading(true);
       const result = await window.electronAPI.queryExchangeFees();
-      console.log('🌻查询数据成功-client', result);
+      // console.log('🌻查询数据成功-client', result);
       if (result.success && result.data) {
-        // 确保数据符合ExchangeFeeItem接口定义
-        // const typedData = result.data.map((item: any) => ({
-        //   exch_code: item.exch_code || '',
-        //   product_type: item.product_type || '',
-        //   product_id: item.product_id || '',
-        //   product_name: item.product_name || '',
-        //   option_series_id: item.option_series_id || '',
-        //   instrument_id: item.instrument_id || '',
-        //   hedge_flag: item.hedge_flag || '*',
-        //   buy_sell: item.buy_sell || '*',
-        //   open_fee_rate: typeof item.open_fee_rate === 'number' ? item.open_fee_rate : 0,
-        //   open_fee_amt: typeof item.open_fee_amt === 'number' ? item.open_fee_amt : 0,
-        //   short_open_fee_rate: typeof item.short_open_fee_rate === 'number' ? item.short_open_fee_rate : 0,
-        //   short_open_fee_amt: typeof item.short_open_fee_amt === 'number' ? item.short_open_fee_amt : 0,
-        //   offset_fee_rate: typeof item.offset_fee_rate === 'number' ? item.offset_fee_rate : 0,
-        //   offset_fee_amt: typeof item.offset_fee_amt === 'number' ? item.offset_fee_amt : 0,
-        //   ot_fee_rate: typeof item.ot_fee_rate === 'number' ? item.ot_fee_rate : 0,
-        //   ot_fee_amt: typeof item.ot_fee_amt === 'number' ? item.ot_fee_amt : 0,
-        //   exec_clear_fee_rate: typeof item.exec_clear_fee_rate === 'number' ? item.exec_clear_fee_rate : 0,
-        //   exec_clear_fee_amt: typeof item.exec_clear_fee_amt === 'number' ? item.exec_clear_fee_amt : 0,
-        // }));
-
         setDataSource(result.data);
         setOriginalData(result.data);
         setTotal(result.data.length);

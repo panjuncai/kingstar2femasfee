@@ -54,13 +54,13 @@ class Database {
       throw new Error('🧨数据库路径未定义');
     }
 
-    console.log('🧨正在保存数据库到路径:', this.dbPath);
+    // console.log('🧨正在保存数据库到路径:', this.dbPath);
     try {
       const data = this.db.export();
       const buffer = Buffer.from(data);
       fs.writeFileSync(this.dbPath, buffer);
       const stats = fs.statSync(this.dbPath);
-      console.log('👌数据库保存成功，大小:', stats.size, '字节');
+      // console.log('👌数据库保存成功，大小:', stats.size, '字节');
     } catch (err) {
       console.error('🧨数据库保存失败', err);
       throw err;

@@ -152,7 +152,7 @@ class IpcHandlers {
               return obj;
             })
           : [];
-      console.log('🌻查询数据成功-ipc', rows);
+      // console.log('🌻查询数据成功-ipc', rows);
       return { success: true, data: rows };
     } catch (error) {
       console.error('查询数据失败:', error);
