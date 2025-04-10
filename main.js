@@ -29,5 +29,7 @@ app.on('activate', function () {
 
 // 应用关闭时保存数据库
 app.on('will-quit', () => {
-  dbInstance.saveDatabase();
+  if (dbInstance) {
+    dbInstance.cleanup();
+  }
 });

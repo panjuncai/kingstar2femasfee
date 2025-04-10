@@ -187,6 +187,7 @@ const ExchangeFeePage: React.FC<unknown> = () => {
     try {
       setLoading(true);
       const result = await window.electronAPI.queryExchangeFees();
+      console.log('🌻查询数据成功-client', result);
       if (result.success && result.data) {
         // 确保数据符合ExchangeFeeItem接口定义
         // const typedData = result.data.map((item: any) => ({

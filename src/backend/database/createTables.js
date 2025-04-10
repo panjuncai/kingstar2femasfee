@@ -1,6 +1,5 @@
 const createTables = async (db) => {
   try {
-    db.exec(`DROP TABLE IF EXISTS t_exchange_trade_fee`);
     db.exec(`CREATE TABLE IF NOT EXISTS t_exchange_trade_fee (
         exch_code TEXT NOT NULL,           -- 交易所名称
         product_type TEXT NOT NULL,        -- 产品类型

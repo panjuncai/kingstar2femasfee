@@ -53,7 +53,6 @@ class IpcHandlers {
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `);
 
-          // console.log('row🌻', row);
           const exch_code = row['交易所名称'] || '';
           const product_type = row['产品类型'] || '';
           const product_id = row['产品代码'] || '';
@@ -111,11 +110,9 @@ class IpcHandlers {
 
         // 提交事务
         db.exec('COMMIT');
-        console.log('🌻提交事务');
 
         dbInstance.saveDatabase();
-        console.log('🌻保存数据库');
-        return { success: true, message: `🌻成功导入${data.length}条数据` };
+        return { success: true, message: `成功导入${data.length}条数据` };
       } catch (error) {
         // 回滚事务
         db.exec('ROLLBACK');
@@ -134,7 +131,6 @@ class IpcHandlers {
         throw new Error('数据库未初始化');
       }
       const result = db.exec('SELECT * FROM t_exchange_trade_fee');
-      // console.log('result🌻', result);
       // 将结果转换为对象数组
       const rows =
         result.length > 0
@@ -156,7 +152,7 @@ class IpcHandlers {
               return obj;
             })
           : [];
-
+      console.log('🌻查询数据成功-ipc', rows);
       return { success: true, data: rows };
     } catch (error) {
       console.error('查询数据失败:', error);
@@ -170,10 +166,12 @@ class IpcHandlers {
       if (!db) {
         throw new Error('数据库未初始化');
       }
-      // 使用事务处理
-      db.exec('BEGIN TRANSACTION');
+      console.log('🌻🌻🌻🌻🌻🌻清空数据表🌻🌻🌻🌻🌻🌻🌻🌻', tableName);
 
       try {
+        // 使用事务处理
+        db.exec('BEGIN TRANSACTION');
+
         // 清空数据表
         db.exec(`DELETE FROM ${tableName}`);
 
