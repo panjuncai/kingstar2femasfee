@@ -1,13 +1,9 @@
+import { ImportFormProps } from '@/types/props';
 import { Button, Form, Modal, message } from 'antd';
 import React from 'react';
 
-interface ImportFormProps {
-  visible: boolean;
-  onCancel: () => void;
-  onSuccess: () => void;
-}
-
 const ImportForm: React.FC<ImportFormProps> = ({
+  title,
   visible,
   onCancel,
   onSuccess,
@@ -37,7 +33,7 @@ const ImportForm: React.FC<ImportFormProps> = ({
 
   return (
     <Modal
-      title="导入飞马交易所手续费率"
+      title={title}
       open={visible}
       onCancel={onCancel}
       footer={null}
@@ -45,7 +41,7 @@ const ImportForm: React.FC<ImportFormProps> = ({
     >
       <Form layout="vertical">
         <div style={{ textAlign: 'center', marginBottom: 16 }}>
-          <h3>先清空，后导入</h3>
+          <h3>本操作会先清空数据，再做导入</h3>
         </div>
         <div style={{ textAlign: 'center' }}>
           <Button

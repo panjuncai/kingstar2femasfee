@@ -1,3 +1,4 @@
+import ImportForm from '@/components/ImportForm';
 import {
   ActionType,
   PageContainer,
@@ -6,7 +7,6 @@ import {
 } from '@ant-design/pro-components';
 import { Button, Modal, message } from 'antd';
 import React, { useEffect, useRef, useState } from 'react';
-import ImportForm from './components/ImportForm';
 
 interface ExchangeFeeItem {
   exch_code: string;
@@ -224,6 +224,7 @@ const ExchangeFeePage: React.FC<unknown> = () => {
       />
 
       <ImportForm
+        title="导入金仕达客户手续费率"
         visible={importModalVisible}
         onCancel={() => setImportModalVisible(false)}
         onSuccess={handleImportSuccess}

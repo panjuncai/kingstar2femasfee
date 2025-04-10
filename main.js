@@ -1,8 +1,5 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
-const path = require('path');
 const url = require('url');
-const fs = require('fs-extra');
-const initSqlJs = require('sql.js');
 const XLSX = require('xlsx');
 const isDev = process.env.NODE_ENV === 'development';
 
@@ -88,14 +85,27 @@ function saveDatabase(dbPath) {
 // 创建必要的表
 function createTables() {
   try {
+    db.exec(`DROP TABLE IF EXISTS t_exchange_trade_fee`);
     db.exec(`CREATE TABLE IF NOT EXISTS t_exchange_trade_fee (
-      exch_code TEXT NOT NULL,
-      product_type TEXT NOT NULL,
-      product_id TEXT,
-      instrument_id TEXT NOT NULL,
-      open_amt DECIMAL(10,2) DEFAULT 0.00,
-      open_rate DECIMAL(10,8) DEFAULT 0.0000000,
-      PRIMARY KEY (exch_code, product_type, product_id, instrument_id)
+      exch_code TEXT NOT NULL,           -- 交易所名称
+      product_type TEXT NOT NULL,        -- 产品类型
+      product_id TEXT,                   -- 产品代码
+      product_name TEXT,                 -- 产品名称
+      option_series_id TEXT,             -- 期权系列
+      instrument_id TEXT NOT NULL,       -- 合约代码
+      hedge_flag TEXT,                   -- 投保标识
+      buy_sell TEXT,                     -- 买卖标识
+      open_fee_rate DECIMAL(10,8) DEFAULT 0.00000000,       -- 开仓手续费率（按金额）
+      open_fee_amt DECIMAL(10,2) DEFAULT 0.00,             -- 开仓手续费额（按手数）
+      short_open_fee_rate DECIMAL(10,8) DEFAULT 0.00000000, -- 短线开仓手续费率（按金额）
+      short_open_fee_amt DECIMAL(10,2) DEFAULT 0.00,       -- 短线开仓手续费额（按手数）
+      offset_fee_rate DECIMAL(10,8) DEFAULT 0.00000000,     -- 平仓手续费率（按金额）
+      offset_fee_amt DECIMAL(10,2) DEFAULT 0.00,           -- 平仓手续费额（按手数）
+      ot_fee_rate DECIMAL(10,8) DEFAULT 0.00000000,         -- 平今手续费率（按金额）
+      ot_fee_amt DECIMAL(10,2) DEFAULT 0.00,               -- 平今手续费额（按手数）
+      exec_clear_fee_rate DECIMAL(10,8) DEFAULT 0.00000000, -- 行权手续费率（按金额）
+      exec_clear_fee_amt DECIMAL(10,2) DEFAULT 0.00,       -- 行权手续费额（按手数）
+      PRIMARY KEY (exch_code, product_type, product_id, option_series_id, instrument_id, hedge_flag, buy_sell)
     )`);
     console.log('表已创建或已存在');
   } catch (err) {
@@ -170,6 +180,7 @@ ipcMain.handle('import-excel', async (event) => {
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
     const data = XLSX.utils.sheet_to_json(worksheet);
+    console.log('data', data);
 
     if (data.length === 0) {
       return { success: false, message: 'Excel文件为空' };
@@ -185,58 +196,79 @@ ipcMain.handle('import-excel', async (event) => {
       // 插入新数据
       for (const row of data) {
         const stmt = db.prepare(`
-          INSERT INTO t_exchange_trade_fee (exch_code, product_type, product_id, instrument_id, open_amt, open_rate)
-          VALUES (?, ?, ?, ?, ?, ?)
+          INSERT INTO t_exchange_trade_fee (
+            exch_code, product_type, product_id, product_name, option_series_id, instrument_id, 
+            hedge_flag, buy_sell, open_fee_rate, open_fee_amt, short_open_fee_rate, short_open_fee_amt, 
+            offset_fee_rate, offset_fee_amt, ot_fee_rate, ot_fee_amt, exec_clear_fee_rate, exec_clear_fee_amt
+          )
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
 
-        const exch_code = row['交易所'] || '';
+        const exch_code = row['交易所名称'] || '';
         const product_type = row['产品类型'] || '';
         const product_id = row['产品代码'] || '';
-        const instrument_id = row['合约代码'] || '';
+        const product_name = row['产品名称'] || '';
+        const option_series_id = row['期权系列'] || '';
+        const instrument_id = row['合约代码'] || '*';
+        const hedge_flag = row['投保标识'] || '*';
+        const buy_sell = row['买卖标识'] || '*';
 
-        // 转换为数值类型
-        let open_amt = 0;
-        let open_rate = 0;
+        // 解析所有费率和费额字段，处理格式和默认值
+        const parseRate = (fieldName) => {
+          if (row[fieldName] === undefined || row[fieldName] === null) return 0;
+          // 处理百分比值，去除逗号，转换为小数
+          const strValue = String(row[fieldName])
+            .replace(/,/g, '')
+            .replace(/%/g, '');
+          const value = parseFloat(strValue) / 100; // 百分比转小数
+          return isNaN(value) ? 0 : value;
+        };
 
-        // 确保正确解析数值
-        if (
-          row['开仓手续费率（按手数）'] !== undefined &&
-          row['开仓手续费率（按手数）'] !== null
-        ) {
-          // 先确保是字符串，然后替换掉可能的逗号等分隔符，再转为浮点数
-          open_amt = parseFloat(
-            String(row['开仓手续费率（按手数）']).replace(/,/g, ''),
-          );
-        }
+        const parseAmount = (fieldName) => {
+          if (row[fieldName] === undefined || row[fieldName] === null) return 0;
+          // 处理费额，去除逗号等格式符号
+          const strValue = String(row[fieldName]).replace(/,/g, '');
+          const value = parseFloat(strValue);
+          return isNaN(value) ? 0 : value;
+        };
 
-        if (
-          row['开仓手续费率（按金额）'] !== undefined &&
-          row['开仓手续费率（按金额）'] !== null
-        ) {
-          // 同样处理金额百分比
-          open_rate =
-            parseFloat(
-              String(row['开仓手续费率（按金额）'])
-                .replace(/,/g, '')
-                .replace(/%/g, ''),
-            ) / 100;
-        }
+        // 解析各个费率和费额字段
+        const open_fee_rate = parseRate('开仓手续费率（按金额）');
+        const open_fee_amt = parseAmount('开仓手续费额（按手数）');
+        const short_open_fee_rate = parseRate('短线开仓手续费率（按金额）');
+        const short_open_fee_amt = parseAmount('短线开仓手续费额（按手数）');
+        const offset_fee_rate = parseRate('平仓手续费率（按金额）');
+        const offset_fee_amt = parseAmount('平仓手续费额（按手数）');
+        const ot_fee_rate = parseRate('平今手续费率（按金额）');
+        const ot_fee_amt = parseAmount('平今手续费额（按手数）');
+        const exec_clear_fee_rate = parseRate('行权手续费率（按金额）');
+        const exec_clear_fee_amt = parseAmount('行权手续费额（按手数）');
 
-        // 确保是有效数字
-        if (isNaN(open_amt)) open_amt = 0;
-        if (isNaN(open_rate)) open_rate = 0;
-
-        // console.log(
-        //   `导入数据: ${exch_code}, ${product_type}, ${product_id}, ${instrument_id}, 手续费(按手数): ${open_amt}, 手续费(按金额): ${open_rate}`,
-        // );
+        console.log(
+          `导入数据: ${exch_code}, ${product_type}, ${product_id}, ${instrument_id}, ` +
+            `投保标识: ${hedge_flag}, 买卖标识: ${buy_sell}, ` +
+            `开仓费率: ${open_fee_rate}, 开仓费额: ${open_fee_amt}`,
+        );
 
         stmt.run([
           exch_code,
           product_type,
           product_id,
+          product_name,
+          option_series_id,
           instrument_id,
-          open_amt, // 直接使用数值
-          open_rate, // 直接使用数值
+          hedge_flag,
+          buy_sell,
+          open_fee_rate,
+          open_fee_amt,
+          short_open_fee_rate,
+          short_open_fee_amt,
+          offset_fee_rate,
+          offset_fee_amt,
+          ot_fee_rate,
+          ot_fee_amt,
+          exec_clear_fee_rate,
+          exec_clear_fee_amt,
         ]);
         stmt.free();
       }
@@ -274,7 +306,7 @@ ipcMain.handle('query-exchange-fees', () => {
             const obj = {};
             result[0].columns.forEach((col, i) => {
               // 确保数值字段作为数值类型传递
-              if (col === 'open_amt' || col === 'open_rate') {
+              if (col.endsWith('_amt') || col.endsWith('_rate')) {
                 // 确保是数值类型
                 obj[col] =
                   typeof row[i] === 'string' ? parseFloat(row[i]) : row[i];

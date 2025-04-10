@@ -1,3 +1,6 @@
+import ImportForm from '@/components/ImportForm';
+import { ExchangeFeeItem } from '@/types/exchangeFee';
+import { compareAmount, compareRate } from '@/utils/tool';
 import {
   ActionType,
   PageContainer,
@@ -6,23 +9,12 @@ import {
 } from '@ant-design/pro-components';
 import { Button, Modal, Pagination, message } from 'antd';
 import React, { useEffect, useRef, useState } from 'react';
-import ImportForm from './components/ImportForm';
-
-interface ExchangeFeeItem {
-  exch_code: string;
-  product_type: string;
-  product_id: string;
-  instrument_id: string;
-  open_amt: number;
-  open_rate: number;
-}
-
 const ExchangeFeePage: React.FC<unknown> = () => {
   const [importModalVisible, setImportModalVisible] = useState<boolean>(false);
   const actionRef = useRef<ActionType>();
   const [dataSource, setDataSource] = useState<ExchangeFeeItem[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
   const [originalData, setOriginalData] = useState<ExchangeFeeItem[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
   // 分页相关状态
   const [current, setCurrent] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(20);
@@ -61,6 +53,24 @@ const ExchangeFeePage: React.FC<unknown> = () => {
       },
     },
     {
+      title: '产品名称',
+      dataIndex: 'product_name',
+      valueType: 'text',
+      fieldProps: {
+        allowClear: true,
+      },
+      hideInSearch: true,
+    },
+    {
+      title: '期权系列',
+      dataIndex: 'option_series_id',
+      valueType: 'text',
+      fieldProps: {
+        allowClear: true,
+      },
+      hideInSearch: true,
+    },
+    {
       title: '合约代码',
       dataIndex: 'instrument_id',
       valueType: 'text',
@@ -69,8 +79,29 @@ const ExchangeFeePage: React.FC<unknown> = () => {
       },
     },
     {
-      title: '开仓手续费率(按手数)',
-      dataIndex: 'open_amt',
+      title: '投保标识',
+      dataIndex: 'hedge_flag',
+      valueType: 'select',
+      valueEnum: {
+        '*': { text: '*' },
+        投机: { text: '投机' },
+        套保: { text: '套保' },
+        套利: { text: '套利' },
+      },
+    },
+    {
+      title: '买卖标识',
+      dataIndex: 'buy_sell',
+      valueType: 'select',
+      valueEnum: {
+        '*': { text: '*' },
+        买入: { text: '买入' },
+        卖出: { text: '卖出' },
+      },
+    },
+    {
+      title: '开仓手续费额(按手数)',
+      dataIndex: 'open_fee_amt',
       valueType: 'digit',
       fieldProps: {
         precision: 2,
@@ -78,7 +109,71 @@ const ExchangeFeePage: React.FC<unknown> = () => {
     },
     {
       title: '开仓手续费率(按金额)',
-      dataIndex: 'open_rate',
+      dataIndex: 'open_fee_rate',
+      valueType: 'digit',
+      fieldProps: {
+        precision: 8,
+      },
+    },
+    {
+      title: '短线开仓手续费额(按手数)',
+      dataIndex: 'short_open_fee_amt',
+      valueType: 'digit',
+      fieldProps: {
+        precision: 2,
+      },
+    },
+    {
+      title: '短线开仓手续费率(按金额)',
+      dataIndex: 'short_open_fee_rate',
+      valueType: 'digit',
+      fieldProps: {
+        precision: 8,
+      },
+    },
+    {
+      title: '平仓手续费额(按手数)',
+      dataIndex: 'offset_fee_amt',
+      valueType: 'digit',
+      fieldProps: {
+        precision: 2,
+      },
+    },
+    {
+      title: '平仓手续费率(按金额)',
+      dataIndex: 'offset_fee_rate',
+      valueType: 'digit',
+      fieldProps: {
+        precision: 8,
+      },
+    },
+    {
+      title: '平今手续费额(按手数)',
+      dataIndex: 'ot_fee_amt',
+      valueType: 'digit',
+      fieldProps: {
+        precision: 2,
+      },
+    },
+    {
+      title: '平今手续费率(按金额)',
+      dataIndex: 'ot_fee_rate',
+      valueType: 'digit',
+      fieldProps: {
+        precision: 8,
+      },
+    },
+    {
+      title: '行权手续费额(按手数)',
+      dataIndex: 'exec_clear_fee_amt',
+      valueType: 'digit',
+      fieldProps: {
+        precision: 2,
+      },
+    },
+    {
+      title: '行权手续费率(按金额)',
+      dataIndex: 'exec_clear_fee_rate',
       valueType: 'digit',
       fieldProps: {
         precision: 8,
@@ -92,6 +187,28 @@ const ExchangeFeePage: React.FC<unknown> = () => {
       setLoading(true);
       const result = await window.electronAPI.queryExchangeFees();
       if (result.success && result.data) {
+        // 确保数据符合ExchangeFeeItem接口定义
+        // const typedData = result.data.map((item: any) => ({
+        //   exch_code: item.exch_code || '',
+        //   product_type: item.product_type || '',
+        //   product_id: item.product_id || '',
+        //   product_name: item.product_name || '',
+        //   option_series_id: item.option_series_id || '',
+        //   instrument_id: item.instrument_id || '',
+        //   hedge_flag: item.hedge_flag || '*',
+        //   buy_sell: item.buy_sell || '*',
+        //   open_fee_rate: typeof item.open_fee_rate === 'number' ? item.open_fee_rate : 0,
+        //   open_fee_amt: typeof item.open_fee_amt === 'number' ? item.open_fee_amt : 0,
+        //   short_open_fee_rate: typeof item.short_open_fee_rate === 'number' ? item.short_open_fee_rate : 0,
+        //   short_open_fee_amt: typeof item.short_open_fee_amt === 'number' ? item.short_open_fee_amt : 0,
+        //   offset_fee_rate: typeof item.offset_fee_rate === 'number' ? item.offset_fee_rate : 0,
+        //   offset_fee_amt: typeof item.offset_fee_amt === 'number' ? item.offset_fee_amt : 0,
+        //   ot_fee_rate: typeof item.ot_fee_rate === 'number' ? item.ot_fee_rate : 0,
+        //   ot_fee_amt: typeof item.ot_fee_amt === 'number' ? item.ot_fee_amt : 0,
+        //   exec_clear_fee_rate: typeof item.exec_clear_fee_rate === 'number' ? item.exec_clear_fee_rate : 0,
+        //   exec_clear_fee_amt: typeof item.exec_clear_fee_amt === 'number' ? item.exec_clear_fee_amt : 0,
+        // }));
+
         setDataSource(result.data);
         setOriginalData(result.data);
         setTotal(result.data.length);
@@ -167,7 +284,7 @@ const ExchangeFeePage: React.FC<unknown> = () => {
         headerTitle=""
         actionRef={actionRef}
         rowKey={(record) =>
-          `${record.exch_code}_${record.product_type}_${record.product_id}_${record.instrument_id}`
+          `${record.exch_code}_${record.product_type}_${record.product_id}_${record.option_series_id}_${record.instrument_id}_${record.hedge_flag}_${record.buy_sell}`
         }
         search={{
           labelWidth: 160,
@@ -186,6 +303,10 @@ const ExchangeFeePage: React.FC<unknown> = () => {
               item.product_type !== params.product_type
             )
               return false;
+            if (params.hedge_flag && item.hedge_flag !== params.hedge_flag)
+              return false;
+            if (params.buy_sell && item.buy_sell !== params.buy_sell)
+              return false;
 
             // 产品代码和合约代码 - 模糊匹配
             if (
@@ -199,17 +320,57 @@ const ExchangeFeePage: React.FC<unknown> = () => {
             )
               return false;
 
-            // 开仓手续费率 - 近似匹配（考虑浮点数精度问题）
-            if (params.open_amt !== undefined) {
-              const diff = Math.abs(item.open_amt - params.open_amt);
-              if (diff > 0.000001) return false; // 容许很小的误差
-            }
-
-            if (params.open_rate !== undefined) {
-              // 对于非常小的小数，使用更高精度的近似比较
-              const diff = Math.abs(item.open_rate - params.open_rate);
-              if (diff > 0.000000001) return false; // 容许极小的误差
-            }
+            // 费率和费额比较
+            if (
+              params.open_fee_amt !== undefined &&
+              !compareAmount(item.open_fee_amt, params.open_fee_amt)
+            )
+              return false;
+            if (
+              params.open_fee_rate !== undefined &&
+              !compareRate(item.open_fee_rate, params.open_fee_rate)
+            )
+              return false;
+            if (
+              params.short_open_fee_amt !== undefined &&
+              !compareAmount(item.short_open_fee_amt, params.short_open_fee_amt)
+            )
+              return false;
+            if (
+              params.short_open_fee_rate !== undefined &&
+              !compareRate(item.short_open_fee_rate, params.short_open_fee_rate)
+            )
+              return false;
+            if (
+              params.offset_fee_amt !== undefined &&
+              !compareAmount(item.offset_fee_amt, params.offset_fee_amt)
+            )
+              return false;
+            if (
+              params.offset_fee_rate !== undefined &&
+              !compareRate(item.offset_fee_rate, params.offset_fee_rate)
+            )
+              return false;
+            if (
+              params.ot_fee_amt !== undefined &&
+              !compareAmount(item.ot_fee_amt, params.ot_fee_amt)
+            )
+              return false;
+            if (
+              params.ot_fee_rate !== undefined &&
+              !compareRate(item.ot_fee_rate, params.ot_fee_rate)
+            )
+              return false;
+            if (
+              params.exec_clear_fee_amt !== undefined &&
+              !compareAmount(item.exec_clear_fee_amt, params.exec_clear_fee_amt)
+            )
+              return false;
+            if (
+              params.exec_clear_fee_rate !== undefined &&
+              !compareRate(item.exec_clear_fee_rate, params.exec_clear_fee_rate)
+            )
+              return false;
 
             return true;
           });
@@ -263,6 +424,7 @@ const ExchangeFeePage: React.FC<unknown> = () => {
       />
 
       <ImportForm
+        title="导入飞马交易所手续费率"
         visible={importModalVisible}
         onCancel={() => setImportModalVisible(false)}
         onSuccess={handleImportSuccess}

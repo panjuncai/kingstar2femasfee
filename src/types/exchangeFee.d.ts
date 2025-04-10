@@ -1,0 +1,20 @@
+export interface ExchangeFeeItem {
+  exch_code: string; // 交易所名称
+  product_type: string; // 产品类型
+  product_id: string; // 产品代码
+  product_name: string; // 产品名称
+  option_series_id: string; // 期权系列
+  instrument_id: string; // 合约代码
+  hedge_flag: string; // 投保标识
+  buy_sell: string; // 买卖标识
+  open_fee_rate: number; // 开仓手续费率（按金额）
+  open_fee_amt: number; // 开仓手续费额（按手数）
+  short_open_fee_rate: number; // 短线开仓手续费率（按金额）
+  short_open_fee_amt: number; // 短线开仓手续费额（按手数）
+  offset_fee_rate: number; // 平仓手续费率（按金额）
+  offset_fee_amt: number; // 平仓手续费额（按手数）
+  ot_fee_rate: number; // 平今手续费率（按金额）
+  ot_fee_amt: number; // 平今手续费额（按手数）
+  exec_clear_fee_rate: number; // 行权手续费率（按金额）
+  exec_clear_fee_amt: number; // 行权手续费额（按手数）
+}
