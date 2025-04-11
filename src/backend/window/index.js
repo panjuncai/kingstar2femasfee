@@ -30,7 +30,7 @@ class MainWindow {
     this.window.loadURL(startUrl);
 
     if (isDev) {
-      this.window.webContents.openDevTools();
+      // this.window.webContents.openDevTools();
     }
   }
 }

@@ -7,7 +7,7 @@ import {
   ProColumns,
   ProTable,
 } from '@ant-design/pro-components';
-import { Button, Modal, Pagination, message } from 'antd';
+import { Button, Modal, message } from 'antd';
 import React, { useEffect, useRef, useState } from 'react';
 
 const ExchangeFeePage: React.FC<unknown> = () => {
@@ -16,13 +16,36 @@ const ExchangeFeePage: React.FC<unknown> = () => {
   const [dataSource, setDataSource] = useState<ExchangeFeeItem[]>([]);
   const [originalData, setOriginalData] = useState<ExchangeFeeItem[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
-  // 分页相关状态
-  const [current, setCurrent] = useState<number>(1);
-  const [pageSize, setPageSize] = useState<number>(20);
-  const [total, setTotal] = useState<number>(0);
+  const [columnsState, setColumnsState] = useState<Record<string, any>>({});
+  const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
+
+  // 从 localStorage 加载列设置
+  useEffect(() => {
+    const savedColumnsState = localStorage.getItem('exchangeFeeColumnsState');
+    if (savedColumnsState) {
+      try {
+        setColumnsState(JSON.parse(savedColumnsState));
+      } catch (error) {
+        console.error('加载列设置失败:', error);
+      }
+    }
+  }, []);
+
+  // 保存列设置到 localStorage
+  const handleColumnsStateChange = (map: Record<string, any>) => {
+    setColumnsState(map);
+    localStorage.setItem('exchangeFeeColumnsState', JSON.stringify(map));
+  };
 
   // 定义表格列
   const columns: ProColumns<ExchangeFeeItem>[] = [
+    {
+      title: '序号',
+      dataIndex: 'index',
+      valueType: 'index',
+      width: 50,
+      fixed: 'left',
+    },
     {
       title: '交易所',
       dataIndex: 'exch_code',
@@ -35,6 +58,7 @@ const ExchangeFeePage: React.FC<unknown> = () => {
         能源中心: { text: '能源中心' },
         郑商所: { text: '郑商所' },
       },
+      width: 75,
     },
     {
       title: '产品类型',
@@ -44,14 +68,16 @@ const ExchangeFeePage: React.FC<unknown> = () => {
         期货: { text: '期货' },
         期权: { text: '期权' },
       },
+      width: 80,
     },
     {
-      title: '产品代码',
+      title: '产品',
       dataIndex: 'product_id',
       valueType: 'text',
       fieldProps: {
         allowClear: true,
       },
+      width: 45,
     },
     {
       title: '产品名称',
@@ -61,6 +87,7 @@ const ExchangeFeePage: React.FC<unknown> = () => {
         allowClear: true,
       },
       hideInSearch: true,
+      width: 140,
     },
     {
       title: '期权系列',
@@ -72,15 +99,16 @@ const ExchangeFeePage: React.FC<unknown> = () => {
       hideInSearch: true,
     },
     {
-      title: '合约代码',
+      title: '合约',
       dataIndex: 'instrument_id',
       valueType: 'text',
       fieldProps: {
         allowClear: true,
       },
+      width: 70,
     },
     {
-      title: '投保标识',
+      title: '投保',
       dataIndex: 'hedge_flag',
       valueType: 'select',
       valueEnum: {
@@ -89,9 +117,10 @@ const ExchangeFeePage: React.FC<unknown> = () => {
         套保: { text: '套保' },
         套利: { text: '套利' },
       },
+      width: 45,
     },
     {
-      title: '买卖标识',
+      title: '买卖',
       dataIndex: 'buy_sell',
       valueType: 'select',
       valueEnum: {
@@ -99,86 +128,67 @@ const ExchangeFeePage: React.FC<unknown> = () => {
         买入: { text: '买入' },
         卖出: { text: '卖出' },
       },
+      width: 45,
     },
     {
-      title: '开仓手续费额(按手数)',
+      title: '开仓(按手数)',
       dataIndex: 'open_fee_amt',
       valueType: 'digit',
-      fieldProps: {
-        precision: 2,
-      },
+      sorter: (a, b) => a.open_fee_amt - b.open_fee_amt,
     },
     {
-      title: '开仓手续费率(按金额)',
+      title: '开仓(按金额)',
       dataIndex: 'open_fee_rate',
       valueType: 'digit',
-      fieldProps: {
-        precision: 8,
-      },
+      sorter: (a, b) => a.open_fee_rate - b.open_fee_rate,
     },
     {
-      title: '短线开仓手续费额(按手数)',
+      title: '短开(按手数)',
       dataIndex: 'short_open_fee_amt',
       valueType: 'digit',
-      fieldProps: {
-        precision: 2,
-      },
+      sorter: (a, b) => a.short_open_fee_amt - b.short_open_fee_amt,
     },
     {
-      title: '短线开仓手续费率(按金额)',
+      title: '短开(按金额)',
       dataIndex: 'short_open_fee_rate',
       valueType: 'digit',
-      fieldProps: {
-        precision: 8,
-      },
+      sorter: (a, b) => a.short_open_fee_rate - b.short_open_fee_rate,
     },
     {
-      title: '平仓手续费额(按手数)',
+      title: '平仓(按手数)',
       dataIndex: 'offset_fee_amt',
       valueType: 'digit',
-      fieldProps: {
-        precision: 2,
-      },
+      sorter: (a, b) => a.offset_fee_amt - b.offset_fee_amt,
     },
     {
-      title: '平仓手续费率(按金额)',
+      title: '平仓(按金额)',
       dataIndex: 'offset_fee_rate',
       valueType: 'digit',
-      fieldProps: {
-        precision: 8,
-      },
+      sorter: (a, b) => a.offset_fee_rate - b.offset_fee_rate,
     },
     {
-      title: '平今手续费额(按手数)',
+      title: '平今(按手数)',
       dataIndex: 'ot_fee_amt',
       valueType: 'digit',
-      fieldProps: {
-        precision: 2,
-      },
+      sorter: (a, b) => a.ot_fee_amt - b.ot_fee_amt,
     },
     {
-      title: '平今手续费率(按金额)',
+      title: '平今(按金额)',
       dataIndex: 'ot_fee_rate',
       valueType: 'digit',
-      fieldProps: {
-        precision: 8,
-      },
+      sorter: (a, b) => a.ot_fee_rate - b.ot_fee_rate,
     },
     {
-      title: '行权手续费额(按手数)',
+      title: '行权(按手数)',
       dataIndex: 'exec_clear_fee_amt',
       valueType: 'digit',
-      fieldProps: {
-        precision: 2,
-      },
+      sorter: (a, b) => a.exec_clear_fee_amt - b.exec_clear_fee_amt,
     },
     {
-      title: '行权手续费率(按金额)',
+      title: '行权(按金额)',
       dataIndex: 'exec_clear_fee_rate',
       valueType: 'digit',
-      fieldProps: {
-        precision: 8,
-      },
+      sorter: (a, b) => a.exec_clear_fee_rate - b.exec_clear_fee_rate,
     },
   ];
 
@@ -187,11 +197,9 @@ const ExchangeFeePage: React.FC<unknown> = () => {
     try {
       setLoading(true);
       const result = await window.electronAPI.queryExchangeFees();
-      // console.log('🌻查询数据成功-client', result);
       if (result.success && result.data) {
         setDataSource(result.data);
         setOriginalData(result.data);
-        setTotal(result.data.length);
       } else {
         message.error(result.message || '加载数据失败');
       }
@@ -203,25 +211,84 @@ const ExchangeFeePage: React.FC<unknown> = () => {
     }
   };
 
-  // 处理分页变化
-  const handlePageChange = (page: number, size?: number) => {
-    setCurrent(page);
-    if (size) {
-      setPageSize(size);
-    }
-  };
+  // 处理搜索和筛选
+  const handleSearch = (params: any) => {
+    // 筛选数据 - 始终从原始数据中筛选
+    const filteredData = originalData.filter((item) => {
+      // 交易所和产品类型 - 精确匹配
+      if (params.exch_code && item.exch_code !== params.exch_code) return false;
+      if (params.product_type && item.product_type !== params.product_type)
+        return false;
+      if (params.hedge_flag && item.hedge_flag !== params.hedge_flag)
+        return false;
+      if (params.buy_sell && item.buy_sell !== params.buy_sell) return false;
 
-  // 获取当前页数据
-  const getCurrentPageData = () => {
-    const startIndex = (current - 1) * pageSize;
-    const endIndex = startIndex + pageSize;
-    return dataSource.slice(startIndex, endIndex);
-  };
+      // 产品代码和合约代码 - 模糊匹配
+      if (params.product_id && !item.product_id.includes(params.product_id))
+        return false;
+      if (
+        params.instrument_id &&
+        !item.instrument_id.includes(params.instrument_id)
+      )
+        return false;
 
-  // 组件挂载时加载数据
-  useEffect(() => {
-    loadData();
-  }, []);
+      // 费率和费额比较
+      if (
+        params.open_fee_amt !== undefined &&
+        !compareAmount(item.open_fee_amt, params.open_fee_amt)
+      )
+        return false;
+      if (
+        params.open_fee_rate !== undefined &&
+        !compareRate(item.open_fee_rate, params.open_fee_rate)
+      )
+        return false;
+      if (
+        params.short_open_fee_amt !== undefined &&
+        !compareAmount(item.short_open_fee_amt, params.short_open_fee_amt)
+      )
+        return false;
+      if (
+        params.short_open_fee_rate !== undefined &&
+        !compareRate(item.short_open_fee_rate, params.short_open_fee_rate)
+      )
+        return false;
+      if (
+        params.offset_fee_amt !== undefined &&
+        !compareAmount(item.offset_fee_amt, params.offset_fee_amt)
+      )
+        return false;
+      if (
+        params.offset_fee_rate !== undefined &&
+        !compareRate(item.offset_fee_rate, params.offset_fee_rate)
+      )
+        return false;
+      if (
+        params.ot_fee_amt !== undefined &&
+        !compareAmount(item.ot_fee_amt, params.ot_fee_amt)
+      )
+        return false;
+      if (
+        params.ot_fee_rate !== undefined &&
+        !compareRate(item.ot_fee_rate, params.ot_fee_rate)
+      )
+        return false;
+      if (
+        params.exec_clear_fee_amt !== undefined &&
+        !compareAmount(item.exec_clear_fee_amt, params.exec_clear_fee_amt)
+      )
+        return false;
+      if (
+        params.exec_clear_fee_rate !== undefined &&
+        !compareRate(item.exec_clear_fee_rate, params.exec_clear_fee_rate)
+      )
+        return false;
+
+      return true;
+    });
+
+    setDataSource(filteredData);
+  };
 
   // 导入成功后刷新数据
   const handleImportSuccess = () => {
@@ -254,10 +321,19 @@ const ExchangeFeePage: React.FC<unknown> = () => {
     });
   };
 
+  // 组件挂载时加载数据
+  useEffect(() => {
+    loadData();
+  }, []);
+
   return (
     <PageContainer
       header={{
         title: '交易所手续费率',
+      }}
+      style={{
+        height: '100vh',
+        overflow: 'hidden',
       }}
     >
       <ProTable<ExchangeFeeItem>
@@ -271,137 +347,69 @@ const ExchangeFeePage: React.FC<unknown> = () => {
           filterType: 'query',
         }}
         loading={loading}
-        dataSource={getCurrentPageData()}
-        onSubmit={(params) => {
-          // 筛选数据 - 始终从原始数据中筛选
-          const filteredData = originalData.filter((item) => {
-            // 交易所和产品类型 - 精确匹配
-            if (params.exch_code && item.exch_code !== params.exch_code)
-              return false;
-            if (
-              params.product_type &&
-              item.product_type !== params.product_type
-            )
-              return false;
-            if (params.hedge_flag && item.hedge_flag !== params.hedge_flag)
-              return false;
-            if (params.buy_sell && item.buy_sell !== params.buy_sell)
-              return false;
-
-            // 产品代码和合约代码 - 模糊匹配
-            if (
-              params.product_id &&
-              !item.product_id.includes(params.product_id)
-            )
-              return false;
-            if (
-              params.instrument_id &&
-              !item.instrument_id.includes(params.instrument_id)
-            )
-              return false;
-
-            // 费率和费额比较
-            if (
-              params.open_fee_amt !== undefined &&
-              !compareAmount(item.open_fee_amt, params.open_fee_amt)
-            )
-              return false;
-            if (
-              params.open_fee_rate !== undefined &&
-              !compareRate(item.open_fee_rate, params.open_fee_rate)
-            )
-              return false;
-            if (
-              params.short_open_fee_amt !== undefined &&
-              !compareAmount(item.short_open_fee_amt, params.short_open_fee_amt)
-            )
-              return false;
-            if (
-              params.short_open_fee_rate !== undefined &&
-              !compareRate(item.short_open_fee_rate, params.short_open_fee_rate)
-            )
-              return false;
-            if (
-              params.offset_fee_amt !== undefined &&
-              !compareAmount(item.offset_fee_amt, params.offset_fee_amt)
-            )
-              return false;
-            if (
-              params.offset_fee_rate !== undefined &&
-              !compareRate(item.offset_fee_rate, params.offset_fee_rate)
-            )
-              return false;
-            if (
-              params.ot_fee_amt !== undefined &&
-              !compareAmount(item.ot_fee_amt, params.ot_fee_amt)
-            )
-              return false;
-            if (
-              params.ot_fee_rate !== undefined &&
-              !compareRate(item.ot_fee_rate, params.ot_fee_rate)
-            )
-              return false;
-            if (
-              params.exec_clear_fee_amt !== undefined &&
-              !compareAmount(item.exec_clear_fee_amt, params.exec_clear_fee_amt)
-            )
-              return false;
-            if (
-              params.exec_clear_fee_rate !== undefined &&
-              !compareRate(item.exec_clear_fee_rate, params.exec_clear_fee_rate)
-            )
-              return false;
-
-            return true;
-          });
-
-          setDataSource(filteredData);
-          setTotal(filteredData.length);
-          setCurrent(1); // 重置到第一页
-        }}
+        dataSource={dataSource}
+        scroll={{ x: 'max-content', y: 'calc(100vh - 280px)' }}
+        pagination={false}
+        virtual
+        onSubmit={handleSearch}
         onReset={() => {
-          // 重置时恢复原始数据
           setDataSource(originalData);
-          setTotal(originalData.length);
-          setCurrent(1); // 重置到第一页
+        }}
+        options={{
+          setting: true,
+          density: false,
+          fullScreen: true,
+          reload: () => loadData(),
+        }}
+        columns={columns}
+        columnsState={{
+          value: columnsState,
+          onChange: handleColumnsStateChange,
+        }}
+        size="small"
+        bordered
+        style={{
+          width: '100%',
+          height: '100%',
+        }}
+        onRow={(record) => ({
+          onClick: () => {
+            const key = `${record.exch_code}_${record.product_type}_${record.product_id}_${record.option_series_id}_${record.instrument_id}_${record.hedge_flag}_${record.buy_sell}`;
+            setSelectedRowKeys([key]);
+          },
+          style: { cursor: 'pointer' },
+        })}
+        rowClassName={(record) => {
+          const key = `${record.exch_code}_${record.product_type}_${record.product_id}_${record.option_series_id}_${record.instrument_id}_${record.hedge_flag}_${record.buy_sell}`;
+          return selectedRowKeys.includes(key) ? 'selected-row' : '';
         }}
         toolBarRender={() => [
-          <div
-            key="pagination"
-            style={{ display: 'flex', alignItems: 'center' }}
-          >
-            <Pagination
-              current={current}
-              pageSize={pageSize}
-              total={total}
-              size="small"
-              onChange={handlePageChange}
-              showSizeChanger
-              showQuickJumper
-              showTotal={(t) => `共 ${t} 条`}
-              style={{ marginRight: 16 }}
-            />
-          </div>,
+          <span key="total" style={{ marginRight: 16 }}>
+            总记录数：{dataSource.length}
+          </span>,
           <Button
-            key="1"
+            key="import"
             type="primary"
             onClick={() => setImportModalVisible(true)}
           >
             导入
           </Button>,
-          <Button key="2" danger onClick={handleClearData}>
+          <Button key="clear" danger onClick={handleClearData}>
             清空
           </Button>,
         ]}
-        options={{
-          setting: false,
-          density: false,
-          fullScreen: false,
-          reload: () => loadData(),
-        }}
-        columns={columns}
-        pagination={false}
       />
+      <style>
+        {`
+          .selected-row {
+            background-color: #bae7ff !important;
+          }
+          .selected-row:hover > td {
+            background-color: #bae7ff !important;
+          }
+          }
+        `}
+      </style>
 
       <ImportForm
         title="导入飞马交易所手续费率"
